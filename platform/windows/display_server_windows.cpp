@@ -118,6 +118,28 @@ static void track_mouse_leave_event(HWND hWnd) {
 	TrackMouseEvent(&tme);
 }
 
+static bool get_raw_device_id(int &id, const HANDLE &device_handle) {
+	UINT device_count = 0;
+
+	if (GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST)) != 0) { return false; }
+	if (0 == device_count) { return false; }
+	PRAWINPUTDEVICELIST devices = NULL;
+	devices = (PRAWINPUTDEVICELIST)malloc(sizeof(RAWINPUTDEVICELIST) * device_count);
+	if (NULL == devices) { return false; }
+	device_count = GetRawInputDeviceList(devices, &device_count, sizeof(RAWINPUTDEVICELIST));
+
+	if (device_count != (UINT)-1) {
+		for (int i = 0; i < device_count; ++i) {
+			if (devices[i].hDevice == device_handle) {
+				id = i;
+				break;
+			}
+		}
+	}
+	free(devices);
+	return true;
+}
+
 bool DisplayServerWindows::has_feature(Feature p_feature) const {
 	switch (p_feature) {
 #ifndef DISABLE_DEPRECATED
@@ -4690,7 +4712,7 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 	WindowID window_id = INVALID_WINDOW_ID;
 	bool window_created = false;
-	static HANDLE current_keyboard_id;
+	static int current_keyboard_id;
 
 	// Check whether window exists
 	// FIXME this is O(n), where n is the set of currently open windows and subwindows
@@ -4944,7 +4966,10 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 			const BitField<WinKeyModifierMask> &mods = _get_mods();
 			if (raw->header.dwType == RIM_TYPEKEYBOARD) {
-				current_keyboard_id = raw->header.hDevice;
+				if (!get_raw_device_id(current_keyboard_id, raw->header.hDevice)){
+					current_keyboard_id = (int)raw->header.hDevice;
+				}
+
 				if (raw->data.keyboard.VKey == VK_SHIFT) {
 					// If multiple Shifts are held down at the same time,
 					// Windows natively only sends a KEYUP for the last one to be released.
@@ -6273,9 +6298,6 @@ void DisplayServerWindows::_process_key_events() {
 				}
 
 				k->set_echo((ke.uMsg == WM_KEYDOWN && (ke.lParam & (1 << 30))));
-
-				// Send legacy input
-				// Input::get_singleton()->parse_input_event(k);
 
 				// Send raw input
 				Ref<InputEventKey> k_raw = k->duplicate();
