@@ -115,9 +115,50 @@
 				Returns a copy of the given input event which has been offset by [param local_ofs] and transformed by [param xform]. Relevant for events of type [InputEventMouseButton], [InputEventMouseMotion], [InputEventScreenTouch], [InputEventScreenDrag], [InputEventMagnifyGesture] and [InputEventPanGesture].
 			</description>
 		</method>
+		<method name="assign_device_index" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="device" type="int" />
+			<description>
+				Assign a new index to a device, return true on success and false on failure.
+			</description>
+		</method>
+		<method name="remove_device_index" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="device" type="int" />
+			<description>
+				Remove an existing indexed device, return true on success and false on failure.
+			</description>
+		</method>
+		<method name="get_active_devices" qualifiers="static">
+			<return type="PackedInt32Array" />
+			<description>
+				Get the currently active indexed devices.
+			</description>
+		</method>
+		<method name="filter_active_devices" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="active_devices" type="PackedInt32Array" />
+			<description>
+				Remove any existing active devices if they are not found in param [param active_devices].
+			</description>
+		</method>
+		<method name="get_device_index">
+			<return type="int" />
+			<param index="0" name="device" type="int" />
+			<description>
+				Return the index of param [param device] if exist, return -1 otherwise.
+			</description>
+		</method>
+		<method name="set_device_index" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="device" type="int" />
+			<description>
+				Assign an index to the param [param device] and store that index in member [member device], return true if success (index is not -1).
+			</description>
+		</method>
 	</methods>
 	<members>
-		<member name="device" type="int" setter="set_device" getter="get_device" default="0">
+		<member name="device" type="int" setter="set_device" getter="get_device" default="-1">
 			The event's device ID.
 			[b]Note:[/b] [member device] can be negative for special use cases that don't refer to devices physically present on the system. See [constant DEVICE_ID_EMULATION].
 		</member>

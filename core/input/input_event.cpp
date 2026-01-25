@@ -104,6 +104,67 @@ bool InputEvent::is_action_type() const {
 	return false;
 }
 
+bool InputEvent::assign_device_index(int p_device) {
+	if (device_index.end() != device_index.find(p_device)) {
+		return false;
+	}
+	device_index.insert(p_device, true);
+	for (const auto &[old_device, active] : device_index) {
+		if (!active) {
+			device_index.erase(old_device);
+			break;
+		}
+	}
+	return true;
+}
+
+bool InputEvent::remove_device_index(int p_device) {
+	if (device_index.end() == device_index.find(p_device)) {
+		return false;
+	}
+	device_index[p_device] = false;
+	return true;
+}
+
+Vector<int> InputEvent::get_active_devices() {
+	Vector<int> active_devices;
+	for (const auto &[old_device, active] : device_index) {
+		if (active) {
+			active_devices.append(old_device);
+		}
+	}
+	return active_devices;
+}
+
+void InputEvent::filter_active_devices(Vector<int> p_active_devices) {
+	for (const auto &current_dev : InputEvent::get_active_devices()) {
+		bool found = false;
+		for (const auto &new_dev : p_active_devices) {
+			found = (new_dev == current_dev);
+			if (found) {
+				break;
+			}
+		}
+		if (!found) {
+			InputEvent::remove_device_index(current_dev);
+		}
+	}
+}
+
+int InputEvent::get_device_index(int p_device) {
+	return device_index.get_index(p_device);
+}
+
+bool InputEvent::set_device_index(int p_device) {
+	InputEvent::assign_device_index(p_device);
+	int index = InputEvent::get_device_index(p_device);
+	if (-1 == index) {
+		return false;
+	}
+	this->set_device(index);
+	return true;
+}
+
 void InputEvent::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_device", "device"), &InputEvent::set_device);
 	ClassDB::bind_method(D_METHOD("get_device"), &InputEvent::get_device);
@@ -117,6 +178,13 @@ void InputEvent::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_pressed"), &InputEvent::is_pressed);
 	ClassDB::bind_method(D_METHOD("is_released"), &InputEvent::is_released);
 	ClassDB::bind_method(D_METHOD("is_echo"), &InputEvent::is_echo);
+
+	ClassDB::bind_static_method("InputEvent", D_METHOD("assign_device_index", "device"), &InputEvent::assign_device_index);
+	ClassDB::bind_static_method("InputEvent", D_METHOD("remove_device_index", "device"), &InputEvent::remove_device_index);
+	ClassDB::bind_static_method("InputEvent", D_METHOD("get_active_devices"), &InputEvent::get_active_devices);
+	ClassDB::bind_static_method("InputEvent", D_METHOD("filter_active_devices", "active_devices"), &InputEvent::filter_active_devices);
+	ClassDB::bind_static_method("InputEvent", D_METHOD("get_device_index", "device"), &InputEvent::get_device_index);
+	ClassDB::bind_method(D_METHOD("set_device_index", "device"), &InputEvent::set_device_index);
 
 	ClassDB::bind_method(D_METHOD("as_text"), &InputEvent::as_text);
 
